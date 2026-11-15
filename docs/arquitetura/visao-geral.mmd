@@ -1,0 +1,21 @@
+flowchart LR
+    cliente[Cliente e funcionário] -->|JWT| gw[API Gateway]
+    gw -->|/billing/v1| api
+
+    subgraph billing[Billing Service]
+        api[Adaptadores de entrada<br/>REST, webhook e fila de comandos]
+        app[Casos de uso e portas]
+        dom[Domínio<br/>catálogo, orçamento e pagamento]
+        out[Adaptadores de saída<br/>JPA, outbox e Mercado Pago]
+        api --> app
+        app --> dom
+        out --> app
+    end
+
+    out --> db[(PostgreSQL<br/>oficina-billing-db)]
+    out -->|cobrança e estorno| mp[Mercado Pago]
+    mp -->|aviso assinado| api
+    os[OS Service] -->|os.eventos: comandos| mq[[RabbitMQ]]
+    mq -->|oficina-billing-comandos| api
+    out -->|billing.eventos: eventos| mq
+    mq --> os

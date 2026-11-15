@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: billing-service-config
+  labels:
+    app.kubernetes.io/name: billing-service
+data:
+  # Logs estruturados em JSON (ECS); ENVIRONMENT identifica o ambiente nos logs
+  SPRING_PROFILES_ACTIVE: "docker"
+  ENVIRONMENT: "local"
+  # O mesmo RabbitMQ do OS Service: no EKS é o Service rabbitmq do namespace oficina
+  SPRING_RABBITMQ_HOST: "rabbitmq"
+  SPRING_RABBITMQ_PORT: "5672"
+  # O RDS do Learner Lab aceita poucas conexões; cada réplica abre no máximo este número
+  SPRING_DATASOURCE_POOL_SIZE: "3"
+  MERCADOPAGO_URL: "https://api.mercadopago.com"
