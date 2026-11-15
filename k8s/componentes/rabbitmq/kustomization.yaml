@@ -1,0 +1,8 @@
+# RabbitMQ só para validar o Billing sozinho no kind (overlay local). No EKS o broker é o do OS
+# Service, no mesmo namespace: os dois precisam usar o mesmo RabbitMQ para a Saga funcionar, e um
+# segundo StatefulSet com o mesmo nome sobrescreveria o dele.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - statefulset.yaml
+  - service.yaml

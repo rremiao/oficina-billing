@@ -7,6 +7,27 @@ sugerida para implementar.
 Estado em 14/11/2026: a branch `release/billing-service` tem o cliente Feign do Mercado Pago, cerca
 de 45 DTOs mapeados e um controller. A `main` só tem o README.
 
+## Andamento
+
+| Etapa | Situação |
+| --- | --- |
+| 1. Fundação | Feita |
+| 2. Banco e catálogo | Feita |
+| 3. Orçamento | Feita |
+| 4. Pagamento e Mercado Pago | Feita (sem validação contra o sandbox, ver ADR 0002) |
+| 5. Saga e mensageria | Feita (ADR 0003, contrato em `docs/mensageria.md`) |
+| 6. Deploy e entrega | Feita (ADR 0004); o deploy real depende do RDS e da rota no API Gateway |
+
+Ajustes em relação ao plano original, feitos durante a implementação:
+
+- O `docker-compose.yml` cresce junto com as etapas: na 1 só a aplicação, na 2 o PostgreSQL, e o
+  RabbitMQ entra na 5, quando for usado. Subir infraestrutura que nada usa só esconderia erro.
+- O controller e o service antigos (`BillingController`, `BillingService`) saíram na etapa 1: expunham
+  DTO do Mercado Pago na API e chamavam a Orders API com pedido vazio. O cliente Feign e os DTOs foram
+  para `pagamento/output/mercadopago`, sem mudança de lógica, e têm teste de contrato JSON.
+- O orçamento não tem `POST` na API: nasce pelo caso de uso `GerarOrcamento`, que a etapa 5 liga ao
+  comando `SolicitarOrcamento`.
+
 ## Responsabilidade do serviço
 
 O Billing é o dono de tudo que tem valor em reais: catálogo com preço, orçamento, pagamento via
@@ -31,7 +52,10 @@ Mercado Pago e estorno. Não conhece o Execution Service; fala só com o OS Serv
 
 ### Mercado Pago
 
-O código atual não funciona contra a API real:
+Resolvido na etapa 4 ([ADR 0002](adr/0002-pagamento-pela-orders-api-do-mercado-pago.md)): autenticação
+por access token no lugar do `/oauth/token`, pedido montado a partir do orçamento, chave de
+idempotência fixa por orçamento e por estorno, `mercadopago.url` configurado, webhook assinado e
+refund. O que estava errado no código herdado era:
 
 - `BillingServiceImpl.getToken()` concatena o objeto `MercadoPagoAuthResponse` inteiro em vez de
   usar o campo `access_token`.
@@ -41,6 +65,15 @@ O código atual não funciona contra a API real:
 - `billing.url` não está definido em nenhum `application.properties`.
 
 Além das correções, faltam o webhook de confirmação de pagamento e a chamada de refund.
+
+Revisar também nos DTOs, ao ligar o cliente na etapa 4 (o teste de contrato da etapa 1 deixou esses
+campos de fora de propósito):
+
+- `MercadoPagoFindOrderConfig.paymentMethod` e `MercadoPagoFindOrderOnline.autoReturn` estão sem
+  `@JsonProperty`, então esperam camelCase, enquanto todo o resto está em snake_case.
+- Os campos de data são `LocalDateTime`; conferir o formato que a API devolve (com ou sem fuso) antes de
+  confiar neles.
+- Os DTOs de viagem (`TravelPassenger`, `TravelRoute`) não têm uso numa oficina e podem sair.
 
 ### Saga e mensageria (RabbitMQ, igual ao OS Service)
 

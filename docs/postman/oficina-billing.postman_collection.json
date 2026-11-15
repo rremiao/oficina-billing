@@ -1,0 +1,157 @@
+{
+  "info": {
+    "name": "Oficina - Billing Service",
+    "description": "Requests de todos os endpoints do Billing Service. Defina baseUrl (ex.: http://localhost:8081/billing/v1) e token (JWT de funcionário emitido pelo login do OS Service, ou de cliente emitido pela Lambda de autenticação por CPF).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{token}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8081/billing/v1" },
+    { "key": "token", "value": "" },
+    { "key": "servicoId", "value": "1" },
+    { "key": "itemId", "value": "1" },
+    { "key": "orcamentoId", "value": "1" },
+    { "key": "ordemServicoId", "value": "1" },
+    { "key": "pagamentoId", "value": "1" },
+    { "key": "idOrdemMercadoPago", "value": "" },
+    { "key": "xRequestId", "value": "" },
+    { "key": "ts", "value": "" },
+    { "key": "hmacDoAviso", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Infraestrutura",
+      "item": [
+        {
+          "name": "Health check",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{baseUrl}}/actuator/health"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Catálogo de serviços",
+      "item": [
+        {
+          "name": "Cadastrar serviço",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Troca de pastilhas de freio\",\n  \"descricao\": \"Eixo dianteiro\",\n  \"valor\": 150.00\n}" },
+            "url": "{{baseUrl}}/servicos"
+          }
+        },
+        {
+          "name": "Listar serviços",
+          "request": { "method": "GET", "url": "{{baseUrl}}/servicos" }
+        },
+        {
+          "name": "Buscar serviço por id",
+          "request": { "method": "GET", "url": "{{baseUrl}}/servicos/{{servicoId}}" }
+        },
+        {
+          "name": "Atualizar serviço",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Troca de pastilhas de freio\",\n  \"descricao\": \"Eixo dianteiro\",\n  \"valor\": 165.00\n}" },
+            "url": "{{baseUrl}}/servicos/{{servicoId}}"
+          }
+        },
+        {
+          "name": "Inativar serviço",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/servicos/{{servicoId}}" }
+        }
+      ]
+    },
+    {
+      "name": "Catálogo de itens",
+      "item": [
+        {
+          "name": "Cadastrar item",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Pastilha de freio\",\n  \"descricao\": \"Cerâmica\",\n  \"tipo\": \"PECA\",\n  \"valorUnitario\": 89.90,\n  \"unidadeMedida\": \"JG\"\n}" },
+            "url": "{{baseUrl}}/itens"
+          }
+        },
+        {
+          "name": "Listar itens",
+          "request": { "method": "GET", "url": "{{baseUrl}}/itens" }
+        },
+        {
+          "name": "Buscar item por id",
+          "request": { "method": "GET", "url": "{{baseUrl}}/itens/{{itemId}}" }
+        },
+        {
+          "name": "Listar itens por tipo",
+          "request": { "method": "GET", "url": "{{baseUrl}}/itens/tipo/PECA" }
+        },
+        {
+          "name": "Atualizar item",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Pastilha de freio\",\n  \"descricao\": \"Cerâmica\",\n  \"tipo\": \"PECA\",\n  \"valorUnitario\": 95.00,\n  \"unidadeMedida\": \"JG\"\n}" },
+            "url": "{{baseUrl}}/itens/{{itemId}}"
+          }
+        },
+        {
+          "name": "Inativar item",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/itens/{{itemId}}" }
+        }
+      ]
+    },
+    {
+      "name": "Orçamentos",
+      "description": "Só consulta: o orçamento nasce do pedido do OS Service pela Saga. Funcionário vê qualquer orçamento; com token de cliente, só os próprios.",
+      "item": [
+        {
+          "name": "Buscar orçamento por id",
+          "request": { "method": "GET", "url": "{{baseUrl}}/orcamentos/{{orcamentoId}}" }
+        },
+        {
+          "name": "Listar orçamentos de uma ordem de serviço",
+          "request": { "method": "GET", "url": "{{baseUrl}}/orcamentos/ordem-servico/{{ordemServicoId}}" }
+        }
+      ]
+    },
+    {
+      "name": "Pagamentos",
+      "description": "A cobrança nasce do comando CobrarPagamento da Saga e a confirmação, do aviso do Mercado Pago. Com token de cliente, só os próprios pagamentos.",
+      "item": [
+        {
+          "name": "Buscar pagamento por id",
+          "request": { "method": "GET", "url": "{{baseUrl}}/pagamentos/{{pagamentoId}}" }
+        },
+        {
+          "name": "Buscar o pagamento de um orçamento (link do checkout)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/pagamentos/orcamento/{{orcamentoId}}" }
+        },
+        {
+          "name": "Aviso do Mercado Pago (webhook)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-request-id", "value": "{{xRequestId}}" },
+              { "key": "x-signature", "value": "ts={{ts}},v1={{hmacDoAviso}}", "description": "HMAC-SHA256 com MERCADOPAGO_WEBHOOK_SECRET de id:<data.id>;request-id:<x-request-id>;ts:<ts>;" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"type\": \"order\",\n  \"action\": \"order.processed\",\n  \"data\": { \"id\": \"{{idOrdemMercadoPago}}\" }\n}" },
+            "url": "{{baseUrl}}/pagamentos/webhook/mercadopago?data.id={{idOrdemMercadoPago}}&type=order"
+          }
+        }
+      ]
+    }
+  ]
+}

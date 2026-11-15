@@ -1,0 +1,17 @@
+# Injeção automática do agent Java do New Relic pelo k8s-agents-operator, já instalado no cluster pelo
+# oficina-kubernetes. Mesmo padrão do OS Service: este Instrumentation seleciona só o Billing, e o
+# operator adiciona um init container com o agent nos pods com a anotação
+# instrumentation.newrelic.com/inject-java.
+apiVersion: newrelic.com/v1beta3
+kind: Instrumentation
+metadata:
+  name: billing-service-java
+spec:
+  agent:
+    language: java
+    image: newrelic/newrelic-java-init:latest
+  # Secret com a license key, criado no namespace oficina pelo oficina-kubernetes
+  licenseKeySecret: newrelic-license
+  podLabelSelector:
+    matchLabels:
+      app.kubernetes.io/name: billing-service

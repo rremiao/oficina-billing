@@ -172,3 +172,49 @@ migrations (Flyway, automático na subida) e rodar os testes.
   (`SagaIntegrationTest`).
 - Mudança no envelope ou nos `dados` de um tipo publicado é mudança de contrato: atualizar
   `docs/mensageria.md` e avisar os times consumidores.
+
+## 11. Arquitetura e SOLID (Billing Service)
+
+O Billing segue Clean Architecture / Ports and Adapters, como combinado no documento de divisão dos
+três microsserviços, e os princípios SOLID. Esta seção vale para todo código novo ou alterado.
+
+### Camadas e regra de dependência
+
+| Camada | Contém | Pode depender de |
+|---|---|---|
+| Domínio | Orçamento, pagamento, estorno, catálogo e as regras deles | nada fora do domínio |
+| Aplicação | Casos de uso e as portas (interfaces) que eles usam | domínio |
+| Adaptadores de entrada | Controllers REST, listeners de mensagem, webhook do Mercado Pago | aplicação |
+| Adaptadores de saída | Persistência (JPA), cliente do Mercado Pago (Feign), publicação no RabbitMQ (outbox) | aplicação e domínio |
+
+- As dependências apontam sempre para dentro: domínio e casos de uso não importam Spring Web, JPA,
+  Feign, RabbitMQ nem DTOs do Mercado Pago.
+- Entidades JPA ficam no adaptador de persistência, separadas das classes de domínio.
+- DTOs do Mercado Pago nunca saem do adaptador do Mercado Pago. Controller e evento expõem modelos
+  próprios do Billing (hoje o `BillingController` devolve `MercadoPagoOrderResponse` direto, e isso
+  é corrigido na etapa 1).
+- Injeção de dependência só por construtor.
+
+### Os princípios no Billing
+
+- **S — Responsabilidade única.** Um caso de uso por classe (`GerarOrcamento`, `CobrarPagamento`,
+  `EstornarPagamento`, `ConfirmarPagamento`). Controller e listener só traduzem a entrada e chamam o
+  caso de uso; o adaptador do Mercado Pago só traduz entre o domínio e a API.
+- **O — Aberto/fechado.** Novo meio de pagamento ou novo gateway entra como um adaptador novo que
+  implementa a porta existente, sem mexer no domínio nem nos casos de uso. Novo comando consumido
+  entra como um manipulador novo, sem mexer no despacho das mensagens.
+- **L — Substituição de Liskov.** Toda implementação de uma porta respeita o contrato dela: as mesmas
+  exceções, a mesma idempotência e nada de `null` onde a porta promete exceção. O gateway falso usado
+  nos testes se comporta como o real; se não se comportar, o teste não prova nada.
+- **I — Segregação de interfaces.** Portas pequenas, por necessidade do caso de uso (por exemplo,
+  cobrar e consultar pagamento separado de estornar), em vez de uma interface única espelhando a API
+  do Mercado Pago. O caso de uso de orçamento não depende de nenhuma porta de pagamento.
+- **D — Inversão de dependência.** A aplicação define as portas e os adaptadores as implementam. O
+  domínio não sabe que existem Mercado Pago, PostgreSQL ou RabbitMQ.
+
+### Como é verificado
+
+- A regra de dependência entre camadas é coberta por um teste de arquitetura (ArchUnit) a partir da
+  etapa 1. Violação derruba o build e conta como bloqueador.
+- Os princípios SOLID que o teste não pega (responsabilidade única, portas pequenas, contrato
+  respeitado) são conferidos na revisão do pull request.

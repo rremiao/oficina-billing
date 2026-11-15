@@ -1,0 +1,69 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: billing_postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-billing}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      # 5433 no host para rodar junto com o PostgreSQL do OS Service, que usa a 5432
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Broker próprio para subir o Billing sozinho. Para a Saga com o OS Service, os dois precisam usar o
+  # mesmo RabbitMQ: aponte SPRING_RABBITMQ_HOST para o broker do OS Service (ver README).
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: billing_rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+    ports:
+      # 5673 e 15673 no host para rodar junto com o RabbitMQ do OS Service (5672 e 15672)
+      - "${RABBITMQ_PORT:-5673}:5672"
+      - "${RABBITMQ_PAINEL_PORT:-15673}:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    container_name: billing_app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    # Permite apontar para o RabbitMQ do OS Service rodando no host (Linux não resolve por padrão)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      # 8081 no host para rodar junto com o OS Service, que usa a 8080
+      - "${BILLING_PORT:-8081}:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-billing}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      SPRING_RABBITMQ_HOST: ${SPRING_RABBITMQ_HOST:-rabbitmq}
+      SPRING_RABBITMQ_PORT: ${SPRING_RABBITMQ_PORT:-5672}
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-guest}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
+      SECURITY_JWT_SECRET: ${SECURITY_JWT_SECRET:-jwt-local-secret-123456789012345678901234567890}
+      MERCADOPAGO_URL: ${MERCADOPAGO_URL:-https://api.mercadopago.com}
+      # Credenciais de teste do painel do Mercado Pago; sem elas, cobrança e webhook falham
+      MERCADOPAGO_ACCESS_TOKEN: ${MERCADOPAGO_ACCESS_TOKEN:-}
+      MERCADOPAGO_WEBHOOK_SECRET: ${MERCADOPAGO_WEBHOOK_SECRET:-}
+    restart: on-failure
+
+volumes:
+  postgres_data:

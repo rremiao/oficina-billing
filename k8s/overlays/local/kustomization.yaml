@@ -1,0 +1,34 @@
+# Cluster local (kind) para validar os manifestos antes do EKS: inclui PostgreSQL, RabbitMQ e segredos
+# de desenvolvimento. Uso: scripts/k8s-local.sh
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: oficina-billing-local
+resources:
+  - namespace.yaml
+  - postgres.yaml
+  - ../../base
+  - ../../componentes/rabbitmq
+generatorOptions:
+  disableNameSuffixHash: true
+# Valores só de desenvolvimento (os mesmos defaults do docker-compose.yml). Sem credencial do Mercado
+# Pago: cobrança falha como transitória e vai para a DLQ, o resto funciona.
+secretGenerator:
+  - name: billing-service-secret
+    literals:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/billing
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+      - SPRING_RABBITMQ_USERNAME=guest
+      - SPRING_RABBITMQ_PASSWORD=guest
+      - SECURITY_JWT_SECRET=jwt-local-secret-123456789012345678901234567890
+      - MERCADOPAGO_ACCESS_TOKEN=
+      - MERCADOPAGO_WEBHOOK_SECRET=
+  - name: rabbitmq-secret
+    literals:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+  - name: postgres-secret
+    literals:
+      - POSTGRES_DB=billing
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
