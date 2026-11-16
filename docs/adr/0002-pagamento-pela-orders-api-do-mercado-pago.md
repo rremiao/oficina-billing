@@ -14,9 +14,11 @@ vazio, montava o pedido vazio e usava uma chave de idempotência fixa (`"testKey
 
 ## Decisão
 
-- **Orders API com checkout online.** O Billing cria a ordem (`POST /v1/orders`, `type: online`) e
-  guarda o `checkout_url`. O cliente consulta esse link em `GET /pagamentos/orcamento/{id}` e paga no
-  Mercado Pago. O pagamento não termina na chamada: termina no aviso do webhook.
+- **Orders API com checkout online por Pix.** O Billing cria a ordem (`POST /v1/orders`, `type: online`)
+  já com a transação Pix (`payment_method: {id: pix, type: bank_transfer}`) e o pagador, que a API exige
+  na criação, e guarda o `ticket_url` do Pix (o `checkout_url` fica de reserva). O cliente consulta esse
+  link em `GET /pagamentos/orcamento/{id}` e paga. O pagamento não termina na chamada: termina no aviso
+  do webhook.
 - **Webhook com consulta.** O aviso do Mercado Pago (`POST /pagamentos/webhook/mercadopago`) é público,
   sem JWT, e tem a assinatura `x-signature` (HMAC-SHA256 com o segredo do webhook) conferida. Mesmo
   com assinatura válida, o aviso só diz qual ordem mudou: o status vem de uma consulta à API

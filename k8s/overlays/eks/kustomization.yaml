@@ -30,6 +30,11 @@ patches:
       - op: add
         path: /data/NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED
         value: "true"
+      # Credenciais de teste do Mercado Pago (sandbox): o pagador APRO faz o sandbox aprovar o Pix
+      # em alguns segundos, e o aviso do webhook confirma o pagamento sem intervenção manual
+      - op: add
+        path: /data/MERCADOPAGO_PAGADOR_NOME
+        value: APRO
   - target:
       kind: Deployment
       name: billing-service

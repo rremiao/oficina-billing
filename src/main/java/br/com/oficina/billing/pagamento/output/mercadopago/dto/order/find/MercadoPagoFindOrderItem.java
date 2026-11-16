@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Getter
 @Setter
@@ -24,5 +24,5 @@ public class MercadoPagoFindOrderItem {
     private String type;
     private Boolean warranty;
     @JsonProperty("event_date")
-    private LocalDateTime eventDate;
+    private OffsetDateTime eventDate;
 }

@@ -1,10 +1,11 @@
 package br.com.oficina.billing.pagamento.output.mercadopago.dto.order.create.response;
 
+import br.com.oficina.billing.pagamento.output.mercadopago.dto.order.find.MercadoPagoFindOrderTransaction;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 @Getter
@@ -40,12 +41,13 @@ public class MercadoPagoOrderResponse {
     @JsonProperty("client_token")
     private String clientToken;
     @JsonProperty("created_date")
-    private LocalDateTime createdDate;
+    private OffsetDateTime createdDate;
     @JsonProperty("last_updated_date")
-    private LocalDateTime lastUpdatedDate;
+    private OffsetDateTime lastUpdatedDate;
     @JsonProperty("integration_data")
     private MercadoPagoOrderResponseIntegration integrationData;
     private MercadoPagoOrderResponseConfig config;
     private List<MercadoPagoOrderResponseItem> items;
+    private MercadoPagoFindOrderTransaction transactions;
     private String description;
 }

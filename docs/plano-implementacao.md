@@ -71,8 +71,9 @@ campos de fora de propósito):
 
 - `MercadoPagoFindOrderConfig.paymentMethod` e `MercadoPagoFindOrderOnline.autoReturn` estão sem
   `@JsonProperty`, então esperam camelCase, enquanto todo o resto está em snake_case.
-- Os campos de data são `LocalDateTime`; conferir o formato que a API devolve (com ou sem fuso) antes de
-  confiar neles.
+- ~~Os campos de data são `LocalDateTime`~~: resolvido. A API real devolve ISO 8601 com fuso
+  (`2026-11-16T17:04:11.785Z`, `2026-11-17T17:04:12.172+00:00`) e quebrava a leitura da ordem; agora são
+  `OffsetDateTime`.
 - Os DTOs de viagem (`TravelPassenger`, `TravelRoute`) não têm uso numa oficina e podem sair.
 
 ### Saga e mensageria (RabbitMQ, igual ao OS Service)

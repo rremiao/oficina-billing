@@ -40,15 +40,15 @@ class MercadoPagoProvedorIntegrationTest {
 	}
 
 	@Test
-	void criaOrdemOnlineComAccessTokenEChaveDeIdempotencia() {
-		MercadoPagoSimulado.ordemCriada("ORD01", "https://mp/checkout/ORD01");
+	void criaOrdemPixComAccessTokenEChaveDeIdempotencia() {
+		MercadoPagoSimulado.ordemCriada("ORD01", "https://mp/pix/ORD01");
 
 		CobrancaCriada cobranca = provedor.criarCobranca(new NovaCobranca("orcamento-10", "Orçamento da OS-2026-000042",
 				new BigDecimal("329.80"), List.of(new ItemCobranca("ITEM-20", "Pastilha", 2, new BigDecimal("89.90"))),
 				"cobranca-orcamento-10"));
 
 		assertThat(cobranca.id()).isEqualTo("ORD01");
-		assertThat(cobranca.linkPagamento()).isEqualTo("https://mp/checkout/ORD01");
+		assertThat(cobranca.linkPagamento()).isEqualTo("https://mp/pix/ORD01");
 		assertThat(cobranca.situacao()).isEqualTo(Situacao.PENDENTE);
 		assertThat(cobranca.resposta()).contains("\"id\":\"ORD01\"");
 		MercadoPagoSimulado.servidor().verify(postRequestedFor(urlEqualTo("/v1/orders"))
@@ -57,7 +57,10 @@ class MercadoPagoProvedorIntegrationTest {
 				.withRequestBody(equalToJson("""
 						{"type": "online", "processing_mode": "automatic", "total_amount": "329.80",
 						 "external_reference": "orcamento-10", "description": "Orçamento da OS-2026-000042",
-						 "items": [{"external_code": "ITEM-20", "title": "Pastilha", "quantity": 2, "unit_price": "89.90"}]}
+						 "items": [{"external_code": "ITEM-20", "title": "Pastilha", "quantity": 2, "unit_price": "89.90"}],
+						 "payer": {"email": "pagamentos@oficina.com.br"},
+						 "transactions": {"payments": [{"amount": "329.80",
+						   "payment_method": {"id": "pix", "type": "bank_transfer"}}]}}
 						""", true, true)));
 	}
 

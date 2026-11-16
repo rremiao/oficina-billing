@@ -110,7 +110,7 @@ public class SagaBillingSteps {
 
 	@Quando("o OS Service pede a cobrança do orçamento")
 	public void pedirCobranca() {
-		MercadoPagoSimulado.ordemCriada(ORDEM_MERCADO_PAGO, "https://mp/checkout/" + ORDEM_MERCADO_PAGO);
+		MercadoPagoSimulado.ordemCriada(ORDEM_MERCADO_PAGO, "https://mp/pix/" + ORDEM_MERCADO_PAGO);
 		os.enviar("CobrarPagamento", saga, ordemServicoId, Map.of("orcamentoId", orcamentoId));
 		await().atMost(ESPERA).until(() -> contar("SELECT count(*) FROM pagamento") == 1);
 		pagamentoId = jdbc.queryForObject("SELECT id FROM pagamento", Long.class);
@@ -121,7 +121,7 @@ public class SagaBillingSteps {
 		mockMvc.perform(get("/pagamentos/orcamento/" + orcamentoId)
 						.header("Authorization", TokensDeTeste.bearer(TokensDeTeste.cliente(7L, "12345678909", "Maria"))))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.linkPagamento").value("https://mp/checkout/" + ORDEM_MERCADO_PAGO));
+				.andExpect(jsonPath("$.linkPagamento").value("https://mp/pix/" + ORDEM_MERCADO_PAGO));
 	}
 
 	@Quando("o Mercado Pago avisa que o pagamento foi aprovado por {string}")
