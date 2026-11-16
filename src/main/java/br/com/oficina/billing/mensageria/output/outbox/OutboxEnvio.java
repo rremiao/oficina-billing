@@ -13,6 +13,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Envia os eventos pendentes do outbox. Cada evento só é marcado como enviado depois da confirmação
@@ -66,7 +67,8 @@ public class OutboxEnvio {
 			}
 			return confirmados;
 		});
-		return enviados == null ? 0 : enviados;
+		// execute devolve nulo só quando a transação não produz resultado (rollback sem retorno)
+		return Objects.requireNonNullElse(enviados, 0);
 	}
 
 	private Map<String, String> rastreamento(OutboxEvento evento) {
