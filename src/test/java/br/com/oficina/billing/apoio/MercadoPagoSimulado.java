@@ -47,11 +47,16 @@ public final class MercadoPagoSimulado {
 		SERVIDOR.resetAll();
 	}
 
-	public static void ordemCriada(String idOrdem, String linkCheckout) {
+	/** Ordem Pix criada como a Orders API responde: aguardando a transferência, com o link do QR Code. */
+	public static void ordemCriada(String idOrdem, String linkPix) {
 		SERVIDOR.stubFor(post(urlEqualTo("/v1/orders")).willReturn(json("""
-				{"id": "%s", "type": "online", "status": "created", "status_detail": "created",
-				 "checkout_url": "%s", "total_amount": "329.80"}
-				""".formatted(idOrdem, linkCheckout))));
+				{"id": "%s", "type": "online", "status": "action_required", "status_detail": "waiting_transfer",
+				 "total_amount": "329.80",
+				 "transactions": {"payments": [{"id": "PAY-1", "amount": "329.80", "status": "action_required",
+				   "status_detail": "waiting_transfer",
+				   "payment_method": {"id": "pix", "type": "bank_transfer", "ticket_url": "%s",
+				     "qr_code": "00020126580014br.gov.bcb.pix"}}]}}
+				""".formatted(idOrdem, linkPix))));
 	}
 
 	public static void ordemConsultada(String idOrdem, String status, String detalhe, String metodo) {

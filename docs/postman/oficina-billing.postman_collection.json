@@ -134,7 +134,7 @@
           "request": { "method": "GET", "url": "{{baseUrl}}/pagamentos/{{pagamentoId}}" }
         },
         {
-          "name": "Buscar o pagamento de um orçamento (link do checkout)",
+          "name": "Buscar o pagamento de um orçamento (link do Pix)",
           "request": { "method": "GET", "url": "{{baseUrl}}/pagamentos/orcamento/{{orcamentoId}}" }
         },
         {

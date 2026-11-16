@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Getter
 @Setter
@@ -20,7 +20,7 @@ public class MercadoPagoFindOrderOnline {
     @JsonProperty("pending_url")
     private String pendingUrl;
     @JsonProperty("available_from")
-    private LocalDateTime availableFrom;
+    private OffsetDateTime availableFrom;
     private String autoReturn;
     private MercadoPagoOrderResponseRetry retries;
 }

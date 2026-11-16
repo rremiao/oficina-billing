@@ -1,6 +1,7 @@
 package br.com.oficina.billing.mensageria.output.outbox;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.UUID;
 
 /** Quem entrega a mensagem. Hoje é o RabbitMQ; o outbox não sabe disso. */
@@ -24,9 +25,14 @@ public interface Broker {
 	 * @param correlationId   id da requisição original
 	 * @param corpo           envelope já serializado em JSON
 	 * @param criadoEm        momento em que o evento foi registrado
+	 * @param rastreamento    cabeçalhos do trace de quem gerou o evento (vazio sem trace)
 	 */
 	record MensagemSaida(UUID messageId, String tipo, String destino, String chaveRoteamento, Long ordemServicoId,
-			String correlationId, String corpo, LocalDateTime criadoEm) {
+			String correlationId, String corpo, LocalDateTime criadoEm, Map<String, String> rastreamento) {
+
+		public MensagemSaida {
+			rastreamento = rastreamento == null ? Map.of() : Map.copyOf(rastreamento);
+		}
 	}
 
 	/** O broker não confirmou: o evento continua pendente e sai na próxima rodada. */

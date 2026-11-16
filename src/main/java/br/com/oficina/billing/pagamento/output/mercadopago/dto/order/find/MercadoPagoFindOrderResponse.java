@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 @Getter
@@ -38,9 +38,9 @@ public class MercadoPagoFindOrderResponse {
     @JsonProperty("client_token")
     private String clientToken;
     @JsonProperty("created_date")
-    private LocalDateTime createdDate;
+    private OffsetDateTime createdDate;
     @JsonProperty("last_updated_date")
-    private LocalDateTime lastUpdatedDate;
+    private OffsetDateTime lastUpdatedDate;
     @JsonProperty("checkout_available_at")
     private String checkoutAvailableAt;
     private String currency;

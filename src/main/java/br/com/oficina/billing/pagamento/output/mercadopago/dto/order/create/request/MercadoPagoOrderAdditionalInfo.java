@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 @Getter
@@ -12,7 +12,7 @@ import java.util.List;
 public class MercadoPagoOrderAdditionalInfo {
 
     @JsonProperty("payer.registration_date")
-    private LocalDateTime payerRegistrationDate;
+    private OffsetDateTime payerRegistrationDate;
     @JsonProperty("payer.authentication_type")
     private String payerAuthenticationType;
     @JsonProperty("payer.is_prime_user")
@@ -20,7 +20,7 @@ public class MercadoPagoOrderAdditionalInfo {
     @JsonProperty("payer.is_first_purchase_online")
     private Boolean payerIsFirstPurchaseOnline;
     @JsonProperty("payer.last_purchase")
-    private LocalDateTime payerLastPurchase;
+    private OffsetDateTime payerLastPurchase;
     @JsonProperty("travel.passengers")
     private List<MercadoPagoOrderTravelPassenger> travelPassengers;
     @JsonProperty("travel.routes")

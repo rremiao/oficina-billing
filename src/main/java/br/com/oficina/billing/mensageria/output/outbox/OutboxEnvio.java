@@ -7,8 +7,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 /**
  * Envia os eventos pendentes do outbox. Cada evento só é marcado como enviado depois da confirmação
@@ -23,18 +27,22 @@ public class OutboxEnvio {
 
 	private static final int TAMANHO_MAXIMO_ERRO = 500;
 	private static final Logger LOG = LoggerFactory.getLogger(OutboxEnvio.class);
+	private static final TypeReference<Map<String, String>> MAPA = new TypeReference<>() {
+	};
 
 	private final OutboxEventoRepository repository;
 	private final Broker broker;
 	private final TransactionTemplate transacao;
 	private final MensageriaProperties propriedades;
+	private final JsonMapper jsonMapper;
 
 	OutboxEnvio(OutboxEventoRepository repository, Broker broker, TransactionTemplate transacao,
-			MensageriaProperties propriedades) {
+			MensageriaProperties propriedades, JsonMapper jsonMapper) {
 		this.repository = repository;
 		this.broker = broker;
 		this.transacao = transacao;
 		this.propriedades = propriedades;
+		this.jsonMapper = jsonMapper;
 	}
 
 	/** Envia uma rodada de pendentes e devolve quantos o broker confirmou. */
@@ -45,7 +53,7 @@ public class OutboxEnvio {
 				try {
 					broker.enviar(new MensagemSaida(evento.getMessageId(), evento.getTipo(), evento.getExchange(),
 							evento.getRoutingKey(), evento.getOrdemServicoId(), evento.getCorrelationId(),
-							evento.getPayload(), evento.getCriadoEm()));
+							evento.getPayload(), evento.getCriadoEm(), rastreamento(evento)));
 				} catch (FalhaPublicacaoException e) {
 					registrarFalha(evento, e);
 					break;
@@ -59,6 +67,19 @@ public class OutboxEnvio {
 			return confirmados;
 		});
 		return enviados == null ? 0 : enviados;
+	}
+
+	private Map<String, String> rastreamento(OutboxEvento evento) {
+		if (evento.getRastreamento() == null) {
+			return Map.of();
+		}
+		try {
+			return jsonMapper.readValue(evento.getRastreamento(), MAPA);
+		} catch (JacksonException e) {
+			// Trace perdido não impede a entrega do evento
+			LOG.warn("outbox_rastreamento_invalido messageId={}", evento.getMessageId());
+			return Map.of();
+		}
 	}
 
 	private static void registrarFalha(OutboxEvento evento, RuntimeException erro) {

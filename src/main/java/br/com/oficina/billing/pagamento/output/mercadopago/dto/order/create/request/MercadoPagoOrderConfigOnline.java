@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 @Getter
@@ -12,7 +12,7 @@ import java.util.List;
 public class MercadoPagoOrderConfigOnline {
 
     @JsonProperty("available_from")
-    private LocalDateTime availableFrom;
+    private OffsetDateTime availableFrom;
     @JsonProperty("allowed_user_type")
     private String allowedUserType;
     @JsonProperty("success_url")

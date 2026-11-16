@@ -15,6 +15,7 @@ import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageProperties;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 class RabbitComandoListenerTest {
 
@@ -38,6 +39,18 @@ class RabbitComandoListenerTest {
 		assertThat(recebida.tipo()).isEqualTo("CobrarPagamento");
 		assertThat(recebida.correlationId()).isEqualTo("corr-1");
 		assertThat(RabbitComandoListener.converter(mensagem(null)).correlationId()).isNull();
+		assertThat(recebida.rastreamento()).isEmpty();
+	}
+
+	@Test
+	void levaSoOsCabecalhosDoTraceDistribuido() {
+		Message comTrace = mensagem("corr-1");
+		comTrace.getMessageProperties().setHeader("traceparent", "00-abc-def-01");
+		comTrace.getMessageProperties().setHeader("newrelic", "eyJ2Ijo");
+		comTrace.getMessageProperties().setHeader("x-ordem-servico-id", 42);
+
+		assertThat(RabbitComandoListener.converter(comTrace).rastreamento())
+				.containsOnly(Map.entry("traceparent", "00-abc-def-01"), Map.entry("newrelic", "eyJ2Ijo"));
 	}
 
 	@Test

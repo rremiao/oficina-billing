@@ -122,12 +122,14 @@ resposta `OrcamentoGerado` entram na etapa 5; não existe `POST` de orçamento n
 
 ## Pagamento
 
-Pela Orders API do Mercado Pago, com checkout online
+Pela Orders API do Mercado Pago, com checkout online por Pix
 ([ADR 0002](docs/adr/0002-pagamento-pela-orders-api-do-mercado-pago.md)):
 
 1. Com o orçamento aprovado, o caso de uso `CobrarPagamento` cria a ordem no Mercado Pago e grava o
-   pagamento `AGUARDANDO_PAGAMENTO` com o link do checkout.
-2. O cliente pega o link em `GET /pagamentos/orcamento/{orcamentoId}` e paga no Mercado Pago.
+   pagamento `AGUARDANDO_PAGAMENTO` com o link do Pix (`ticket_url`, com QR Code e código copia e cola).
+   A Orders API exige o meio de pagamento e o pagador já na criação; o pagador vem de
+   `MERCADOPAGO_PAGADOR_EMAIL` e `MERCADOPAGO_PAGADOR_NOME`, porque o Billing não recebe os dados do cliente.
+2. O cliente pega o link em `GET /pagamentos/orcamento/{orcamentoId}` e paga o Pix.
 3. O Mercado Pago avisa em `POST /pagamentos/webhook/mercadopago`. O Billing confere a assinatura
    `x-signature`, consulta a ordem na API e confirma (`processed`) ou recusa (`failed`, `canceled`,
    `expired`) o pagamento. Aviso repetido não muda nada.
@@ -136,8 +138,9 @@ Pela Orders API do Mercado Pago, com checkout online
 A cobrança e o estorno levam `X-Idempotency-Key` fixa (por orçamento e por pagamento), e há um
 pagamento por orçamento no banco: comando repetido não cobra nem estorna duas vezes. As credenciais
 vêm do painel do Mercado Pago (`MERCADOPAGO_ACCESS_TOKEN` e `MERCADOPAGO_WEBHOOK_SECRET`), e o webhook
-é configurado lá, no tópico "Order". Os testes usam a Orders API simulada (WireMock); falta validar
-contra o sandbox com credenciais de teste.
+é configurado lá, no tópico "Order". Os testes usam a Orders API simulada (WireMock), e o fluxo foi
+validado no sandbox com credenciais de teste: com `MERCADOPAGO_PAGADOR_NOME=APRO`, o sandbox aprova o
+Pix quando o link é aberto, e o webhook confirma o pagamento.
 
 ## Saga e mensageria
 
@@ -181,7 +184,7 @@ validado pela assinatura.
 | `GET` | `/orcamentos/{id}` | Busca orçamento (funcionário ou cliente dono) |
 | `GET` | `/orcamentos/ordem-servico/{ordemServicoId}` | Lista os orçamentos da OS, do mais recente para o mais antigo |
 | `GET` | `/pagamentos/{id}` | Busca pagamento (funcionário ou cliente dono) |
-| `GET` | `/pagamentos/orcamento/{orcamentoId}` | Busca o pagamento do orçamento, com o link do checkout |
+| `GET` | `/pagamentos/orcamento/{orcamentoId}` | Busca o pagamento do orçamento, com o link do Pix |
 | `POST` | `/pagamentos/webhook/mercadopago` | Aviso do Mercado Pago (sem JWT, exige `x-signature`) |
 
 Mudar o preço vale para os orçamentos futuros: orçamento já gerado guarda o valor da época.
@@ -216,6 +219,8 @@ Os dois em `application/problem+json`, como os demais erros da API.
 | `MERCADOPAGO_URL` | URL base da API do Mercado Pago | `https://api.mercadopago.com` |
 | `MERCADOPAGO_ACCESS_TOKEN` | Access token das credenciais da aplicação no Mercado Pago | vazio (cobrança falha) |
 | `MERCADOPAGO_WEBHOOK_SECRET` | Segredo de assinatura do webhook, do painel do Mercado Pago | vazio (todo aviso é recusado) |
+| `MERCADOPAGO_PAGADOR_EMAIL` | E-mail do pagador enviado na ordem Pix | `pagamentos@oficina.com.br` |
+| `MERCADOPAGO_PAGADOR_NOME` | Primeiro nome do pagador; `APRO` aprova o Pix no sandbox | vazio |
 | `ENVIRONMENT` | Ambiente nos logs estruturados (perfil `docker`) | `local` |
 | `BILLING_PORT` | Porta no host do `docker compose` | `8081` |
 | `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | Banco criado pelo `docker compose` | `billing`, `postgres`, `postgres` |

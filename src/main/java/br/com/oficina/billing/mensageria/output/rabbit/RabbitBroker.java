@@ -6,6 +6,7 @@ import com.rabbitmq.client.ShutdownSignalException;
 import org.springframework.amqp.AmqpException;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageBuilder;
+import org.springframework.amqp.core.MessageBuilderSupport;
 import org.springframework.amqp.core.MessageDeliveryMode;
 import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -34,7 +35,7 @@ class RabbitBroker implements Broker {
 
 	@Override
 	public void enviar(MensagemSaida saida) {
-		Message mensagem = MessageBuilder.withBody(saida.corpo().getBytes(StandardCharsets.UTF_8))
+		MessageBuilderSupport<Message> construtor = MessageBuilder.withBody(saida.corpo().getBytes(StandardCharsets.UTF_8))
 				.setContentType(MessageProperties.CONTENT_TYPE_JSON)
 				.setContentEncoding(StandardCharsets.UTF_8.name())
 				.setMessageId(saida.messageId().toString())
@@ -44,8 +45,10 @@ class RabbitBroker implements Broker {
 				.setHeader(CABECALHO_ORDEM_SERVICO, saida.ordemServicoId())
 				.setAppId(APLICACAO)
 				.setTimestamp(Timestamp.valueOf(saida.criadoEm()))
-				.setDeliveryMode(MessageDeliveryMode.PERSISTENT)
-				.build();
+				.setDeliveryMode(MessageDeliveryMode.PERSISTENT);
+		// Cabeçalhos do trace de quem gerou o evento: o OS Service continua o mesmo trace
+		saida.rastreamento().forEach(construtor::setHeader);
+		Message mensagem = construtor.build();
 
 		try {
 			rabbitTemplate.invoke(operacoes -> {

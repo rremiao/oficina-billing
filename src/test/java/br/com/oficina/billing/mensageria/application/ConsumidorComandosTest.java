@@ -2,20 +2,25 @@ package br.com.oficina.billing.mensageria.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
 
 import br.com.oficina.billing.shared.exception.RegraNegocioException;
+import br.com.oficina.billing.shared.observabilidade.Rastreamento;
 import org.junit.jupiter.api.Test;
 import org.slf4j.MDC;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 class ConsumidorComandosTest {
 
 	private static final String SAGA = "3f2a9c1e-5b7d-4e8a-9c21-7d4e5f6a8b90";
 
+	private final Rastreamento rastreamento = mock(Rastreamento.class);
 	private final List<EnvelopeMensagem> recebidos = new ArrayList<>();
 	private final List<String> correlacaoDuranteOProcessamento = new ArrayList<>();
 
@@ -33,7 +38,7 @@ class ConsumidorComandosTest {
 				reacao.accept(envelope);
 			}
 		};
-		return new ConsumidorComandos(List.of(manipulador), JsonMapper.builder().build());
+		return new ConsumidorComandos(List.of(manipulador), JsonMapper.builder().build(), rastreamento);
 	}
 
 	private static MensagemRecebida mensagem(String corpo) {
@@ -45,6 +50,19 @@ class ConsumidorComandosTest {
 				{"tipo": "%s", "sagaId": %s, "ordemServicoId": 42, "correlationId": %s, "dados": {"orcamentoId": 10}}
 				""".formatted(tipo, saga == null ? "null" : "\"" + saga + "\"",
 				correlationId == null ? "null" : "\"" + correlationId + "\"");
+	}
+
+	@Test
+	void continuaOTraceDeQuemEnviouENomeiaATransacaoPeloComando() {
+		Map<String, String> trace = Map.of("traceparent", "00-abc-def-01");
+
+		consumidor(e -> { }).receber(new MensagemRecebida(envelope("CobrarPagamento", SAGA, "corr"),
+				"CobrarPagamento", "corr", trace));
+
+		var ordem = inOrder(rastreamento);
+		ordem.verify(rastreamento).continuar(trace);
+		ordem.verify(rastreamento).nomearTransacao("Mensagem", "CobrarPagamento");
+		assertThat(recebidos).hasSize(1);
 	}
 
 	@Test
@@ -122,7 +140,7 @@ class ConsumidorComandosTest {
 			}
 		};
 
-		assertThatThrownBy(() -> new ConsumidorComandos(List.of(um, um), JsonMapper.builder().build()))
+		assertThatThrownBy(() -> new ConsumidorComandos(List.of(um, um), JsonMapper.builder().build(), rastreamento))
 				.isInstanceOf(IllegalStateException.class);
 	}
 }
