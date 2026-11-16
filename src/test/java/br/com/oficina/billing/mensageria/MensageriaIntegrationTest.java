@@ -156,9 +156,19 @@ class MensageriaIntegrationTest {
 	}
 
 	@Test
+	void eventoSaiComOsCabecalhosDoTraceDeQuemOGerou() {
+		broker.enviar(new MensagemSaida(UUID.randomUUID(), "OrcamentoGerado", "billing.eventos", "OrcamentoGerado",
+				42L, "corr", "{}", LocalDateTime.now(), Map.of("traceparent", "00-abc-def-01", "newrelic", "eyJ2Ijo")));
+
+		Message evento = os.proximoEvento();
+		assertThat((String) evento.getMessageProperties().getHeader("traceparent")).isEqualTo("00-abc-def-01");
+		assertThat((String) evento.getMessageProperties().getHeader("newrelic")).isEqualTo("eyJ2Ijo");
+	}
+
+	@Test
 	void brokerQueNaoConfirmaViraFalhaDePublicacao() {
 		MensagemSaida paraLugarNenhum = new MensagemSaida(UUID.randomUUID(), "OrcamentoGerado", "exchange-que-nao-existe",
-				"OrcamentoGerado", 42L, "corr", "{}", LocalDateTime.now());
+				"OrcamentoGerado", 42L, "corr", "{}", LocalDateTime.now(), null);
 
 		assertThatThrownBy(() -> broker.enviar(paraLugarNenhum)).isInstanceOf(FalhaPublicacaoException.class);
 	}

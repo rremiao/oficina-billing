@@ -48,6 +48,10 @@ public class OutboxEvento {
 	@Column(name = "payload", nullable = false, columnDefinition = "TEXT", updatable = false)
 	private String payload;
 
+	/** Cabeçalhos do trace da transação que gravou o evento, em JSON (nulo sem trace ativo). */
+	@Column(name = "rastreamento", columnDefinition = "TEXT", updatable = false)
+	private String rastreamento;
+
 	@Column(name = "criado_em", nullable = false, updatable = false)
 	private LocalDateTime criadoEm;
 
