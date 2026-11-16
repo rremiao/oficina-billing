@@ -5,6 +5,7 @@ import br.com.oficina.billing.mensageria.application.EventoSaga;
 import br.com.oficina.billing.mensageria.application.PublicadorEventos;
 import br.com.oficina.billing.mensageria.config.MensageriaProperties;
 import br.com.oficina.billing.shared.observabilidade.CorrelationIdFilter;
+import br.com.oficina.billing.shared.observabilidade.Rastreamento;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
@@ -12,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Instant;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -25,12 +27,14 @@ class OutboxPublicadorEventos implements PublicadorEventos {
 	private final OutboxEventoRepository repository;
 	private final JsonMapper jsonMapper;
 	private final MensageriaProperties propriedades;
+	private final Rastreamento rastreamento;
 
 	OutboxPublicadorEventos(OutboxEventoRepository repository, JsonMapper jsonMapper,
-			MensageriaProperties propriedades) {
+			MensageriaProperties propriedades, Rastreamento rastreamento) {
 		this.repository = repository;
 		this.jsonMapper = jsonMapper;
 		this.propriedades = propriedades;
+		this.rastreamento = rastreamento;
 	}
 
 	/** O mesmo fato de novo (comando repetido) só agenda o reenvio do evento já registrado, com o mesmo id. */
@@ -58,6 +62,9 @@ class OutboxPublicadorEventos implements PublicadorEventos {
 		registro.setOrdemServicoId(evento.ordemServicoId());
 		registro.setCorrelationId(correlationId);
 		registro.setPayload(jsonMapper.writeValueAsString(envelope));
+		// Contexto do trace de quem gerou o evento: o OS Service continua o mesmo trace ao receber
+		Map<String, String> cabecalhos = rastreamento.capturar();
+		registro.setRastreamento(cabecalhos.isEmpty() ? null : jsonMapper.writeValueAsString(cabecalhos));
 		repository.save(registro);
 	}
 

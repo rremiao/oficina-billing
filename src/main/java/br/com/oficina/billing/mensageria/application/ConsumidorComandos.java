@@ -2,6 +2,7 @@ package br.com.oficina.billing.mensageria.application;
 
 import br.com.oficina.billing.shared.exception.RegraNegocioException;
 import br.com.oficina.billing.shared.observabilidade.CorrelationIdFilter;
+import br.com.oficina.billing.shared.observabilidade.Rastreamento;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -25,7 +26,8 @@ import java.util.stream.Collectors;
  * </ul>
  *
  * <p>O correlationId da mensagem vai para o MDC: os logs e os eventos publicados em consequência
- * continuam correlacionados com a requisição original.</p>
+ * continuam correlacionados com a requisição original. Do mesmo jeito, a transação continua o trace
+ * distribuído de quem enviou o comando.</p>
  */
 @Component
 public class ConsumidorComandos {
@@ -34,15 +36,20 @@ public class ConsumidorComandos {
 
 	private final Map<String, ManipuladorComando> manipuladores;
 	private final JsonMapper jsonMapper;
+	private final Rastreamento rastreamento;
 
-	public ConsumidorComandos(List<ManipuladorComando> manipuladores, JsonMapper jsonMapper) {
+	public ConsumidorComandos(List<ManipuladorComando> manipuladores, JsonMapper jsonMapper,
+			Rastreamento rastreamento) {
 		// toMap falha na subida se dois manipuladores disputarem o mesmo comando
 		this.manipuladores = manipuladores.stream()
 				.collect(Collectors.toMap(manipulador -> manipulador.tipo().nome(), Function.identity()));
 		this.jsonMapper = jsonMapper;
+		this.rastreamento = rastreamento;
 	}
 
 	public void receber(MensagemRecebida mensagem) {
+		rastreamento.continuar(mensagem.rastreamento());
+		rastreamento.nomearTransacao("Mensagem", String.valueOf(mensagem.tipo()));
 		MDC.put(CorrelationIdFilter.CHAVE_DE_LOG,
 				mensagem.correlationId() != null ? mensagem.correlationId() : UUID.randomUUID().toString());
 		EnvelopeMensagem envelope = null;

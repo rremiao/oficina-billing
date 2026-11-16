@@ -15,9 +15,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
+import tools.jackson.databind.json.JsonMapper;
+import org.mockito.ArgumentCaptor;
+import br.com.oficina.billing.mensageria.output.outbox.Broker.MensagemSaida;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 class OutboxEnvioTest {
@@ -27,7 +31,8 @@ class OutboxEnvioTest {
 	private final TransactionTemplate transacao = mock(TransactionTemplate.class);
 	private final MensageriaProperties propriedades = new MensageriaProperties("os.eventos", "billing.eventos",
 			"oficina-billing-comandos", new MensageriaProperties.Outbox(false, 1000, 50, 7));
-	private final OutboxEnvio envio = new OutboxEnvio(repository, broker, transacao, propriedades);
+	private final OutboxEnvio envio = new OutboxEnvio(repository, broker, transacao, propriedades,
+			JsonMapper.builder().build());
 
 	@BeforeEach
 	@SuppressWarnings("unchecked")
@@ -58,6 +63,23 @@ class OutboxEnvioTest {
 		assertThat(primeiro.getPublicadoEm()).isNotNull();
 		assertThat(segundo.getPublicadoEm()).isNotNull();
 		verify(broker, times(2)).enviar(any());
+	}
+
+	@Test
+	void eventoLevaOTraceGravadoEIgnoraRastreamentoInvalido() {
+		OutboxEvento comTrace = evento("OrcamentoGerado");
+		comTrace.setRastreamento("{\"traceparent\":\"00-abc-def-01\"}");
+		OutboxEvento invalido = evento("PagamentoConfirmado");
+		invalido.setRastreamento("não é json");
+		OutboxEvento semTrace = evento("PagamentoEstornado");
+		when(repository.travarPendentes(50)).thenReturn(List.of(comTrace, invalido, semTrace));
+
+		assertThat(envio.enviarPendentes()).isEqualTo(3);
+
+		ArgumentCaptor<MensagemSaida> enviadas = ArgumentCaptor.forClass(MensagemSaida.class);
+		verify(broker, times(3)).enviar(enviadas.capture());
+		assertThat(enviadas.getAllValues()).extracting(MensagemSaida::rastreamento)
+				.containsExactly(Map.of("traceparent", "00-abc-def-01"), Map.of(), Map.of());
 	}
 
 	@Test

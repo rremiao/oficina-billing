@@ -18,6 +18,7 @@
 
 	<properties>
 		<java.version>21</java.version>
+		<newrelic.version>8.17.0</newrelic.version>
 		<springdoc.version>3.0.2</springdoc.version>
 		<openfeign.version>5.0.4</openfeign.version>
 		<jjwt.version>0.12.7</jjwt.version>
@@ -63,6 +64,13 @@
 	</dependencyManagement>
 
 	<dependencies>
+		<!-- API do agent New Relic: no-op sem o agent (testes), rastreamento distribuído no EKS -->
+		<dependency>
+			<groupId>com.newrelic.agent.java</groupId>
+			<artifactId>newrelic-api</artifactId>
+			<version>${newrelic.version}</version>
+		</dependency>
+
 		<!-- Web, validação e documentação da API -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
